@@ -1,0 +1,138 @@
+{
+  "entities": {
+    "Settings": {
+      "title": "Settings",
+      "description": "Global settings for the web application platform",
+      "type": "object",
+      "properties": {
+        "heroDoctorImageUrl": {
+          "type": "string",
+          "description": "The hero doctor image URL rendered on the landing page"
+        }
+      },
+      "required": ["heroDoctorImageUrl"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "A specialist dentist on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "cro": { "type": "string" },
+        "specialtyId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "bio": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "cro", "specialtyId", "imageUrl", "bio"]
+    },
+    "CaseStudy": {
+      "title": "CaseStudy",
+      "description": "Before and after dental care result case study",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "specialty": { "type": "string" },
+        "patientInitials": { "type": "string" },
+        "beforeImg": { "type": "string" },
+        "afterImg": { "type": "string" },
+        "dentist": { "type": "string" }
+      },
+      "required": ["id", "title", "specialty", "patientInitials", "beforeImg", "afterImg", "dentist"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "A patient testimonial about dental experiences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "age": { "type": "integer" },
+        "city": { "type": "string" },
+        "rating": { "type": "integer" },
+        "text": { "type": "string" },
+        "treatmentName": { "type": "string" },
+        "treatmentId": { "type": "string" },
+        "avatarUrl": { "type": "string" }
+      },
+      "required": ["id", "name", "age", "city", "rating", "text", "treatmentName", "treatmentId", "avatarUrl"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "An image with caption in the clinic gallery showcase",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" }
+      },
+      "required": ["id", "imageUrl", "caption"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "An appointment booking made by a patient",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "specialtyId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "date": { "type": "string" },
+        "period": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "patientEmail": { "type": "string" },
+        "patientNotes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "specialtyId", "doctorId", "date", "period", "timeSlot", "patientName", "patientPhone", "patientEmail", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A marketing or treatment suggestion lead generated from a quiz or contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "recommendedTreatment": { "type": "string" },
+        "recommendedSpecialtyId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "recommendedTreatment", "recommendedSpecialtyId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "settings/{settingsId}": {
+      "schema": "Settings",
+      "description": "Global settings configuration document"
+    },
+    "doctors/{doctorId}": {
+      "schema": "Doctor",
+      "description": "Dentist doctor profiles collection"
+    },
+    "caseStudies/{caseId}": {
+      "schema": "CaseStudy",
+      "description": "Before & after case studies collection"
+    },
+    "testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Patient review testimonials collection"
+    },
+    "gallery/{galleryId}": {
+      "schema": "GalleryItem",
+      "description": "Clinic physical and team gallery collection"
+    },
+    "bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Active appointments collection"
+    },
+    "leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Generated leads collection"
+    }
+  }
+}

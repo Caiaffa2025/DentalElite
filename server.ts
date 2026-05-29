@@ -58,50 +58,169 @@ const initialGallery = [
   }
 ];
 
-// Helper to read DB state
-function readDb() {
+// Initialize Firebase connection
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
+import firebaseConfig from "./firebase-applet-config.json";
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
+
+// Helper to read db state from Firestore with fallback and auto-seeding
+async function readDbFromFirestore() {
   try {
-    if (!fs.existsSync(DB_FILE)) {
-      const defaultDb = {
-        heroDoctorImageUrl: "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600",
-        doctors: initialDoctors,
-        caseStudies: initialCaseStudies,
-        testimonials: initialTestimonials,
-        gallery: initialGallery,
-        bookings: [],
-        leads: []
-      };
-      writeDb(defaultDb);
-      return defaultDb;
+    const settingsDocRef = doc(db, "settings", "global");
+    const settingsSnapshot = await getDoc(settingsDocRef);
+    
+    // If database is completely unpopulated, seed with default values
+    if (!settingsSnapshot.exists()) {
+      console.log("Firestore settings not found. Seeding initial database into Cloud Firestore...");
+      
+      // Seeding global settings
+      await setDoc(settingsDocRef, {
+        heroDoctorImageUrl: "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600"
+      });
+
+      // Seeding Initial Doctors
+      for (const d of initialDoctors) {
+        await setDoc(doc(db, "doctors", d.id), d);
+      }
+
+      // Seeding Initial Case Studies
+      for (const c of initialCaseStudies) {
+        await setDoc(doc(db, "caseStudies", c.id), c);
+      }
+
+      // Seeding Initial Testimonials
+      for (const t of initialTestimonials) {
+        await setDoc(doc(db, "testimonials", t.id), t);
+      }
+
+      // Seeding Initial Gallery
+      for (const g of initialGallery) {
+        await setDoc(doc(db, "gallery", g.id), g);
+      }
+      
+      console.log("Free Cloud Firestore Database seeded successfully!");
     }
-    const content = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(content);
+
+    // Load everything from Firestore
+    const settingsData = (await getDoc(settingsDocRef)).data();
+    
+    const docsSnapshot = await getDocs(collection(db, "doctors"));
+    const doctors = docsSnapshot.docs.map(docSnap => docSnap.data());
+
+    const casesSnapshot = await getDocs(collection(db, "caseStudies"));
+    const caseStudies = casesSnapshot.docs.map(docSnap => docSnap.data());
+
+    const testimonialsSnapshot = await getDocs(collection(db, "testimonials"));
+    const testimonials = testimonialsSnapshot.docs.map(docSnap => docSnap.data());
+
+    const gallerySnapshot = await getDocs(collection(db, "gallery"));
+    const gallery = gallerySnapshot.docs.map(docSnap => docSnap.data());
+
+    const bookingsSnapshot = await getDocs(collection(db, "bookings"));
+    const bookings = bookingsSnapshot.docs.map(docSnap => docSnap.data());
+
+    const leadsSnapshot = await getDocs(collection(db, "leads"));
+    const leads = leadsSnapshot.docs.map(docSnap => docSnap.data());
+
+    return {
+      heroDoctorImageUrl: settingsData?.heroDoctorImageUrl || "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600",
+      doctors,
+      caseStudies,
+      testimonials,
+      gallery,
+      bookings: bookings.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
+      leads: leads.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    };
   } catch (err) {
-    console.error("Error reading database:", err);
+    console.error("Error reading database from Firestore:", err);
     return {
       heroDoctorImageUrl: "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600",
-      doctors: [],
-      caseStudies: [],
-      testimonials: [],
-      gallery: [],
+      doctors: initialDoctors,
+      caseStudies: initialCaseStudies,
+      testimonials: initialTestimonials,
+      gallery: initialGallery,
       bookings: [],
       leads: []
     };
   }
 }
 
-// Helper block to do atomic write
-function writeDb(data: any) {
-  try {
-    const dir = path.dirname(DB_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+// Function to store multiple entities into Firestore
+async function saveToFirestore(body: any) {
+  const { heroDoctorImageUrl, doctors, caseStudies, testimonials, gallery, bookings, leads } = body;
+  
+  if (heroDoctorImageUrl !== undefined) {
+    const cleanUrl = processBase64Images(heroDoctorImageUrl);
+    await setDoc(doc(db, "settings", "global"), { heroDoctorImageUrl: cleanUrl });
+  }
+
+  if (doctors !== undefined) {
+    const cleanDoctors = processBase64Images(doctors);
+    const docsSnapshot = await getDocs(collection(db, "doctors"));
+    for (const docSnap of docsSnapshot.docs) {
+      await deleteDoc(docSnap.ref);
     }
-    const tempFile = DB_FILE + ".tmp";
-    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
-    fs.renameSync(tempFile, DB_FILE);
-  } catch (err) {
-    console.error("Error writing to database:", err);
+    for (const d of cleanDoctors) {
+      await setDoc(doc(db, "doctors", d.id), d);
+    }
+  }
+
+  if (caseStudies !== undefined) {
+    const cleanCases = processBase64Images(caseStudies);
+    const casesSnapshot = await getDocs(collection(db, "caseStudies"));
+    for (const docSnap of casesSnapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+    for (const c of cleanCases) {
+      await setDoc(doc(db, "caseStudies", c.id), c);
+    }
+  }
+
+  if (testimonials !== undefined) {
+    const cleanTestimonials = processBase64Images(testimonials);
+    const testimonialsSnapshot = await getDocs(collection(db, "testimonials"));
+    for (const docSnap of testimonialsSnapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+    for (const t of cleanTestimonials) {
+      await setDoc(doc(db, "testimonials", t.id), t);
+    }
+  }
+
+  if (gallery !== undefined) {
+    const cleanGallery = processBase64Images(gallery);
+    const gallerySnapshot = await getDocs(collection(db, "gallery"));
+    for (const docSnap of gallerySnapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+    for (const g of cleanGallery) {
+      await setDoc(doc(db, "gallery", g.id), g);
+    }
+  }
+
+  if (bookings !== undefined) {
+    const cleanBookings = processBase64Images(bookings);
+    const bookingsSnapshot = await getDocs(collection(db, "bookings"));
+    for (const docSnap of bookingsSnapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+    for (const b of cleanBookings) {
+      await setDoc(doc(db, "bookings", b.id), b);
+    }
+  }
+
+  if (leads !== undefined) {
+    const cleanLeads = processBase64Images(leads);
+    const leadsSnapshot = await getDocs(collection(db, "leads"));
+    for (const docSnap of leadsSnapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+    for (const l of cleanLeads) {
+      await setDoc(doc(db, "leads", l.id), l);
+    }
   }
 }
 
@@ -159,83 +278,67 @@ async function startServer() {
     res.json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
-  // Get full database
-  app.get("/api/db", (req, res) => {
-    const db = readDb();
-    res.json(db);
+  // Get full database (loaded directly from free cloud Firestore)
+  app.get("/api/db", async (req, res) => {
+    const dbData = await readDbFromFirestore();
+    res.json(dbData);
   });
 
   // Save/Update any table or state
-  app.post("/api/db/save", (req, res) => {
+  app.post("/api/db/save", async (req, res) => {
     try {
-      const { heroDoctorImageUrl, doctors, caseStudies, testimonials, gallery, bookings, leads } = req.body;
-      const db = readDb();
-
-      if (heroDoctorImageUrl !== undefined) db.heroDoctorImageUrl = processBase64Images(heroDoctorImageUrl);
-      if (doctors !== undefined) db.doctors = processBase64Images(doctors);
-      if (caseStudies !== undefined) db.caseStudies = processBase64Images(caseStudies);
-      if (testimonials !== undefined) db.testimonials = processBase64Images(testimonials);
-      if (gallery !== undefined) db.gallery = processBase64Images(gallery);
-      if (bookings !== undefined) db.bookings = processBase64Images(bookings);
-      if (leads !== undefined) db.leads = processBase64Images(leads);
-
-      writeDb(db);
-      res.json({ success: true, db });
+      await saveToFirestore(req.body);
+      const dbData = await readDbFromFirestore();
+      res.json({ success: true, db: dbData });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to save data" });
+      res.status(500).json({ error: err.message || "Failed to save data to Firestore" });
     }
   });
 
   // Add individual booking (Public Route)
-  app.post("/api/db/booking", (req, res) => {
+  app.post("/api/db/booking", async (req, res) => {
     try {
       const newBooking = processBase64Images(req.body);
       if (!newBooking || !newBooking.id) {
         return res.status(400).json({ error: "Booking object with an ID is required." });
       }
-      const db = readDb();
-      // Avoid duplicate IDs
-      db.bookings = [newBooking, ...db.bookings.filter((b: any) => b.id !== newBooking.id)];
-      writeDb(db);
+      await setDoc(doc(db, "bookings", newBooking.id), newBooking);
       res.json({ success: true, booking: newBooking });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to add booking" });
+      res.status(500).json({ error: err.message || "Failed to add booking to Firestore" });
     }
   });
 
   // Add individual lead (Public Route)
-  app.post("/api/db/lead", (req, res) => {
+  app.post("/api/db/lead", async (req, res) => {
     try {
       const newLead = processBase64Images(req.body);
       if (!newLead || !newLead.id) {
         return res.status(400).json({ error: "Lead object with an ID is required." });
       }
-      const db = readDb();
-      // Avoid duplicate IDs
-      db.leads = [newLead, ...db.leads.filter((l: any) => l.id !== newLead.id)];
-      writeDb(db);
+      await setDoc(doc(db, "leads", newLead.id), newLead);
       res.json({ success: true, lead: newLead });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to add lead" });
+      res.status(500).json({ error: err.message || "Failed to add lead to Firestore" });
     }
   });
 
   // Delete an item from database
-  app.post("/api/db/delete", (req, res) => {
+  app.post("/api/db/delete", async (req, res) => {
     try {
       const { type, id } = req.body;
       if (!type || !id) {
         return res.status(400).json({ error: "Type and ID are required to delete." });
       }
-      const db = readDb();
-      if (db[type] && Array.isArray(db[type])) {
-        db[type] = db[type].filter((item: any) => item.id !== id);
-        writeDb(db);
-        return res.json({ success: true, db });
+      
+      const allowedCollections = ["doctors", "caseStudies", "testimonials", "gallery", "bookings", "leads"];
+      if (allowedCollections.includes(type)) {
+        await deleteDoc(doc(db, type, id));
+        return res.json({ success: true });
       }
       res.status(400).json({ error: `Invalid database type table: ${type}` });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to delete item" });
+      res.status(500).json({ error: err.message || "Failed to delete item from Firestore" });
     }
   });
 
