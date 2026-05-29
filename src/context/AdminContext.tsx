@@ -150,6 +150,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [isDbLoaded, setIsDbLoaded] = useState<boolean>(false);
+
   // Modal selector helpers
   const [imageEditorState, setImageEditorState] = useState<{
     isOpen: boolean;
@@ -176,34 +178,100 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setImageEditorState(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Persistors
+  // Load initial database state on mount
+  useEffect(() => {
+    const fetchDb = async () => {
+      try {
+        const response = await fetch('/api/db');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.heroDoctorImageUrl !== undefined) setHeroDoctorImageUrl(data.heroDoctorImageUrl);
+          if (data.doctors !== undefined) setDoctors(data.doctors);
+          if (data.caseStudies !== undefined) setCaseStudies(data.caseStudies);
+          if (data.testimonials !== undefined) setTestimonials(data.testimonials);
+          if (data.gallery !== undefined) setGallery(data.gallery);
+          if (data.bookings !== undefined) setBookings(data.bookings);
+          if (data.leads !== undefined) setLeads(data.leads);
+        }
+      } catch (err) {
+        console.error('Failed to load database from server:', err);
+      } finally {
+        setIsDbLoaded(true);
+      }
+    };
+    fetchDb();
+  }, []);
+
+  // Persistors (with Cloud Database synchronization guards)
   useEffect(() => {
     localStorage.setItem('cfg_hero_doctor', heroDoctorImageUrl);
-  }, [heroDoctorImageUrl]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ heroDoctorImageUrl })
+    }).catch(err => console.error('Error syncing heroDoctorImageUrl to server:', err));
+  }, [heroDoctorImageUrl, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_doctors', JSON.stringify(doctors));
-  }, [doctors]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctors })
+    }).catch(err => console.error('Error syncing doctors to server:', err));
+  }, [doctors, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_cases', JSON.stringify(caseStudies));
-  }, [caseStudies]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caseStudies })
+    }).catch(err => console.error('Error syncing caseStudies to server:', err));
+  }, [caseStudies, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_testimonials', JSON.stringify(testimonials));
-  }, [testimonials]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ testimonials })
+    }).catch(err => console.error('Error syncing testimonials to server:', err));
+  }, [testimonials, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_gallery', JSON.stringify(gallery));
-  }, [gallery]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gallery })
+    }).catch(err => console.error('Error syncing gallery to server:', err));
+  }, [gallery, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_bookings', JSON.stringify(bookings));
-  }, [bookings]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookings })
+    }).catch(err => console.error('Error syncing bookings to server:', err));
+  }, [bookings, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_leads', JSON.stringify(leads));
-  }, [leads]);
+    if (!isDbLoaded) return;
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads })
+    }).catch(err => console.error('Error syncing leads to server:', err));
+  }, [leads, isDbLoaded]);
 
   const login = (password: string) => {
     if (password === '1966') {
