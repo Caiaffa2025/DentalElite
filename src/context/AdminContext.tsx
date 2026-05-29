@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Doctor, Testimonial, Booking, Lead } from '../types';
-import { doctors as initialDoctors, testimonials as initialTestimonials } from '../data';
+import dbData from '../../data/db.json';
+
+const initialDoctors: Doctor[] = dbData.doctors as Doctor[];
+const initialTestimonials: Testimonial[] = dbData.testimonials as Testimonial[];
 
 export interface CaseStudy {
   id: string;
@@ -18,53 +21,8 @@ export interface GalleryItem {
   caption: string;
 }
 
-const initialCaseStudies: CaseStudy[] = [
-  {
-    id: 'lentes',
-    title: 'Transformação Estética com Lentes de Contato',
-    specialty: 'Odontologia Estética / Porcelana',
-    patientInitials: 'P.S.M, 32 anos',
-    beforeImg: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&q=80&w=600',
-    afterImg: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600',
-    dentist: 'Dra. Beatriz Menezes'
-  },
-  {
-    id: 'clareamento',
-    title: 'Clareamento Violeta de Alta Eficácia',
-    specialty: 'Estética / Clareamento Premium',
-    patientInitials: 'L.A.T, 28 anos',
-    beforeImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
-    afterImg: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=600',
-    dentist: 'Dra. Beatriz Menezes'
-  },
-  {
-    id: 'invisalign',
-    title: 'Alinhamento com Invisalign®',
-    specialty: 'Ortodontia Digital / Invisível',
-    patientInitials: 'G.H.O, 24 anos',
-    beforeImg: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600',
-    afterImg: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
-    dentist: 'Dra. Mariana Vasconcellos'
-  }
-];
-
-const initialGallery: GalleryItem[] = [
-  {
-    id: 'gal1',
-    imageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=600',
-    caption: 'Consultório odontológico equipado com tecnologia 3D alemã'
-  },
-  {
-    id: 'gal2',
-    imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=600',
-    caption: 'Recepção aconchegante e confortável para nossos pacientes'
-  },
-  {
-    id: 'gal3',
-    imageUrl: 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&q=80&w=600',
-    caption: 'Nossa equipe unida focada em cuidar do seu sorriso'
-  }
-];
+const initialCaseStudies: CaseStudy[] = dbData.caseStudies as CaseStudy[];
+const initialGallery: GalleryItem[] = dbData.gallery as GalleryItem[];
 
 interface AdminContextType {
   isAdmin: boolean;
@@ -118,7 +76,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [heroDoctorImageUrl, setHeroDoctorImageUrl] = useState<string>(() => {
-    return localStorage.getItem('cfg_hero_doctor') || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600';
+    return localStorage.getItem('cfg_hero_doctor') || dbData.heroDoctorImageUrl;
   });
 
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
@@ -207,7 +165,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (response.ok) {
           const data = await response.json();
           if (data.heroDoctorImageUrl !== undefined) {
-            setHeroDoctorImageUrl(data.heroDoctorImageUrl || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600');
+            setHeroDoctorImageUrl(data.heroDoctorImageUrl || dbData.heroDoctorImageUrl);
           }
           if (data.doctors !== undefined && data.doctors.length > 0) {
             setDoctors(data.doctors);

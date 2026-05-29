@@ -327,7 +327,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // Statically serve uploaded files
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
   // Log accesses
   app.use((req, res, next) => {
