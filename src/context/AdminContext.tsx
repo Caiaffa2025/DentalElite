@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Doctor, Testimonial, Booking, Lead } from '../types';
 import { doctors as initialDoctors, testimonials as initialTestimonials } from '../data';
 
@@ -112,6 +112,7 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isInitialLoadRef = useRef<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return localStorage.getItem('is_admin_logged') === 'true';
   });
@@ -243,7 +244,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Persistors (with Cloud Database synchronization guards)
   useEffect(() => {
     localStorage.setItem('cfg_hero_doctor', heroDoctorImageUrl);
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -253,7 +254,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_doctors', JSON.stringify(doctors));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -263,7 +264,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_cases', JSON.stringify(caseStudies));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -273,7 +274,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_testimonials', JSON.stringify(testimonials));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -283,7 +284,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_gallery', JSON.stringify(gallery));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -293,7 +294,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_bookings', JSON.stringify(bookings));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -303,13 +304,22 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     localStorage.setItem('cfg_leads', JSON.stringify(leads));
-    if (!isDbLoaded) return;
+    if (!isDbLoaded || isInitialLoadRef.current) return;
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ leads })
     }).catch(err => console.error('Error syncing leads to server:', err));
   }, [leads, isDbLoaded]);
+
+  useEffect(() => {
+    if (isDbLoaded) {
+      const timer = setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isDbLoaded]);
 
   const login = (password: string) => {
     if (password === '1966') {
