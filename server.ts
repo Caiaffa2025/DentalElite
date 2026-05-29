@@ -66,8 +66,38 @@ import firebaseConfig from "./firebase-applet-config.json";
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
 
+// Helper to load seed defaults either from local data/db.json or fallback mock structures
+function getSeedDefaults() {
+  const defaults = {
+    heroDoctorImageUrl: "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600",
+    doctors: initialDoctors,
+    caseStudies: initialCaseStudies,
+    testimonials: initialTestimonials,
+    gallery: initialGallery
+  };
+
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const dbContent = fs.readFileSync(DB_FILE, "utf-8");
+      const parsed = JSON.parse(dbContent);
+      if (parsed) {
+        if (parsed.heroDoctorImageUrl) defaults.heroDoctorImageUrl = parsed.heroDoctorImageUrl;
+        if (parsed.doctors && parsed.doctors.length > 0) defaults.doctors = parsed.doctors;
+        if (parsed.caseStudies && parsed.caseStudies.length > 0) defaults.caseStudies = parsed.caseStudies;
+        if (parsed.testimonials && parsed.testimonials.length > 0) defaults.testimonials = parsed.testimonials;
+        if (parsed.gallery && parsed.gallery.length > 0) defaults.gallery = parsed.gallery;
+      }
+    }
+  } catch (err) {
+    console.error("Error loading seed defaults from db.json:", err);
+  }
+  return defaults;
+}
+
 // Helper to read db state from Firestore with fallback and auto-seeding
 async function readDbFromFirestore() {
+  const seeds = getSeedDefaults();
+
   try {
     const settingsDocRef = doc(db, "settings", "global");
     const settingsSnapshot = await getDoc(settingsDocRef);
@@ -76,7 +106,7 @@ async function readDbFromFirestore() {
     if (!settingsSnapshot.exists()) {
       console.log("Firestore settings not found. Seeding initial settings...");
       await setDoc(settingsDocRef, {
-        heroDoctorImageUrl: "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600"
+        heroDoctorImageUrl: seeds.heroDoctorImageUrl
       });
     }
 
@@ -85,45 +115,45 @@ async function readDbFromFirestore() {
     let doctors = docsSnapshot.docs.map(docSnap => docSnap.data());
     if (doctors.length === 0) {
       console.log("Doctors collection is empty. Auto-seeding initial doctors...");
-      for (const d of initialDoctors) {
+      for (const d of seeds.doctors) {
         await setDoc(doc(db, "doctors", d.id), d);
       }
-      doctors = initialDoctors;
+      doctors = seeds.doctors;
     }
 
     const casesSnapshot = await getDocs(collection(db, "caseStudies"));
     let caseStudies = casesSnapshot.docs.map(docSnap => docSnap.data());
     if (caseStudies.length === 0) {
       console.log("Case studies collection is empty. Auto-seeding initial case studies...");
-      for (const c of initialCaseStudies) {
+      for (const c of seeds.caseStudies) {
         await setDoc(doc(db, "caseStudies", c.id), c);
       }
-      caseStudies = initialCaseStudies;
+      caseStudies = seeds.caseStudies;
     }
 
     const testimonialsSnapshot = await getDocs(collection(db, "testimonials"));
     let testimonials = testimonialsSnapshot.docs.map(docSnap => docSnap.data());
     if (testimonials.length === 0) {
       console.log("Testimonials collection is empty. Auto-seeding initial testimonials...");
-      for (const t of initialTestimonials) {
+      for (const t of seeds.testimonials) {
         await setDoc(doc(db, "testimonials", t.id), t);
       }
-      testimonials = initialTestimonials;
+      testimonials = seeds.testimonials;
     }
 
     const gallerySnapshot = await getDocs(collection(db, "gallery"));
     let gallery = gallerySnapshot.docs.map(docSnap => docSnap.data());
     if (gallery.length === 0) {
       console.log("Gallery collection is empty. Auto-seeding initial gallery...");
-      for (const g of initialGallery) {
+      for (const g of seeds.gallery) {
         await setDoc(doc(db, "gallery", g.id), g);
       }
-      gallery = initialGallery;
+      gallery = seeds.gallery;
     }
 
     // Load final data
     const settingsData = (await getDoc(settingsDocRef)).data();
-    const heroDoctorImageUrl = settingsData?.heroDoctorImageUrl || "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600";
+    const heroDoctorImageUrl = settingsData?.heroDoctorImageUrl || seeds.heroDoctorImageUrl;
 
     const bookingsSnapshot = await getDocs(collection(db, "bookings"));
     const bookings = bookingsSnapshot.docs.map(docSnap => docSnap.data());
@@ -143,19 +173,19 @@ async function readDbFromFirestore() {
   } catch (err) {
     console.error("Error reading database from Firestore:", err);
     return {
-      heroDoctorImageUrl: "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600",
-      doctors: initialDoctors,
-      caseStudies: initialCaseStudies,
-      testimonials: initialTestimonials,
-      gallery: initialGallery,
+      heroDoctorImageUrl: seeds.heroDoctorImageUrl,
+      doctors: seeds.doctors,
+      caseStudies: seeds.caseStudies,
+      testimonials: seeds.testimonials,
+      gallery: seeds.gallery,
       bookings: [],
       leads: []
     };
   }
 }
 
-// Function to store multiple entities into Firestore
-async function saveToFirestore(body: any) {
+// Function to store multiple entities into Firestore and sync locally to disk
+async function saveToFirestore(body: any, syncLocalFile = true) {
   const { heroDoctorImageUrl, doctors, caseStudies, testimonials, gallery, bookings, leads } = body;
   
   if (heroDoctorImageUrl !== undefined) {
@@ -228,6 +258,58 @@ async function saveToFirestore(body: any) {
       await setDoc(doc(db, "leads", l.id), l);
     }
   }
+
+  // Also write to DB_FILE to keep local repo database in sync
+  if (syncLocalFile) {
+    try {
+      const dirOfDb = path.dirname(DB_FILE);
+      if (!fs.existsSync(dirOfDb)) {
+        fs.mkdirSync(dirOfDb, { recursive: true });
+      }
+      
+      let currentFileContent: any = {};
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          currentFileContent = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
+        } catch {
+          currentFileContent = {};
+        }
+      }
+
+      const merged = {
+        heroDoctorImageUrl: heroDoctorImageUrl !== undefined ? heroDoctorImageUrl : currentFileContent.heroDoctorImageUrl,
+        doctors: doctors !== undefined ? doctors : currentFileContent.doctors,
+        caseStudies: caseStudies !== undefined ? caseStudies : currentFileContent.caseStudies,
+        testimonials: testimonials !== undefined ? testimonials : currentFileContent.testimonials,
+        gallery: gallery !== undefined ? gallery : currentFileContent.gallery,
+        bookings: bookings !== undefined ? bookings : currentFileContent.bookings,
+        leads: leads !== undefined ? leads : currentFileContent.leads,
+      };
+
+      fs.writeFileSync(DB_FILE, JSON.stringify(merged, null, 2), "utf-8");
+      console.log("Database file data/db.json successfully updated locally.");
+    } catch (err) {
+      console.error("Failed to write to local DB_FILE in saveToFirestore:", err);
+    }
+  }
+}
+
+// Startup Sync: Sync data/db.json if it exists directly into Cloud Firestore so git pushes override preexisting database configs
+async function syncLocalDbToFirestore() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      console.log("[Boot] Local database data/db.json found. Synchronizing into Cloud Firestore database...");
+      const dbContent = fs.readFileSync(DB_FILE, "utf-8");
+      const parsed = JSON.parse(dbContent);
+      if (parsed) {
+        // Sync to Firestore once without writing back to disk
+        await saveToFirestore(parsed, false);
+        console.log("[Boot] Successful synchronization from local database file into Cloud Firestore.");
+      }
+    }
+  } catch (err) {
+    console.error("[Boot] Error during local db -> Cloud Firestore boot sync:", err);
+  }
 }
 
 // Helper to process images (no-op as we store compressed base64 strings directly in our cloud Firestore database)
@@ -237,6 +319,9 @@ function processBase64Images(node: any): any {
 
 // Start Server
 async function startServer() {
+  // Sync local database on startup to populate/update Cloud Firestore with the latest modifications
+  await syncLocalDbToFirestore();
+
   // Allow large payloads for base64 image transfers
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

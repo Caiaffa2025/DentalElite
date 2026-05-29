@@ -118,16 +118,16 @@ export const doctors: Doctor[] = [
     role: 'Especialista em Odontologia Estética e Lentes de Porcelana',
     cro: 'CRO-SP 142.308',
     specialtyId: 'estetica',
-    imageUrl: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/uploads/img_1780066053276_905172.avif',
     bio: 'Referência em reabilitação oral estética de alta complexidade. Cria designs de sorrisos únicos combinando arte, proporção facial e tecnologia ultramoderna.'
   },
   {
     id: 'thiago',
-    name: 'Dr. Thiago Siqueira',
+    name: 'Dr. Sydney Tadeu Caiaffa',
     role: 'Especialista em Endodontia de Alta Performance',
     cro: 'CRO-SP 103.220',
     specialtyId: 'canal-estetica',
-    imageUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/uploads/img_1780066053276_39663.jpg',
     bio: 'Mestre em Endodontia, utiliza microscopia óptica operacional alemã que permite tratar canais com precisão microscópica e sem dor, devolvendo a tranquilidade ao paciente.'
   }
 ];
