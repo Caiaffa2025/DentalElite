@@ -1,0 +1,6 @@
+{
+  "name": "Sorriso e Saúde - Clínica Odontológica",
+  "description": "Landing page de conversão para clínica odontológica moderna, com agendamento online e especialidades.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
