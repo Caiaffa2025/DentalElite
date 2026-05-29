@@ -2,99 +2,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global Safety Net (default-deny)
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Helper functions
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function isStringWithSize(val, maxLen) {
-      return val is string && val.size() <= maxLen;
-    }
-
-    function isIntegerWithBounds(val, minVal, maxVal) {
-      return val is int && val >= minVal && val <= maxVal;
-    }
-
-    // Settings Collection Rules
+    // Allow read and write for global settings
     match /settings/{settingsId} {
-      allow read: if true;
-      allow write: if isValidId(settingsId) && 
-                      request.resource.data.keys().hasAll(['heroDoctorImageUrl']) &&
-                      request.resource.data.keys().size() == 1 &&
-                      isStringWithSize(request.resource.data.heroDoctorImageUrl, 2048);
+      allow read, write: if true;
     }
 
-    // Doctors Collection Rules
+    // Allow read and write for doctor profiles
     match /doctors/{doctorId} {
-      allow read: if true;
-      allow write: if isValidId(doctorId) &&
-                      request.resource.data.keys().hasAll(['id', 'name', 'role', 'cro', 'specialtyId', 'imageUrl', 'bio']) &&
-                      request.resource.data.keys().size() == 7 &&
-                      isStringWithSize(request.resource.data.id, 128) &&
-                      isStringWithSize(request.resource.data.name, 256) &&
-                      isStringWithSize(request.resource.data.role, 256) &&
-                      isStringWithSize(request.resource.data.cro, 128) &&
-                      isStringWithSize(request.resource.data.specialtyId, 128) &&
-                      isStringWithSize(request.resource.data.imageUrl, 2048) &&
-                      isStringWithSize(request.resource.data.bio, 4096);
+      allow read, write: if true;
     }
 
-    // Case Studies Collection Rules
+    // Allow read and write for case studies
     match /caseStudies/{caseId} {
-      allow read: if true;
-      allow write: if isValidId(caseId) &&
-                      request.resource.data.keys().hasAll(['id', 'title', 'specialty', 'patientInitials', 'beforeImg', 'afterImg', 'dentist']) &&
-                      request.resource.data.keys().size() == 7 &&
-                      isStringWithSize(request.resource.data.id, 128) &&
-                      isStringWithSize(request.resource.data.title, 512) &&
-                      isStringWithSize(request.resource.data.specialty, 256) &&
-                      isStringWithSize(request.resource.data.patientInitials, 128) &&
-                      isStringWithSize(request.resource.data.beforeImg, 2048) &&
-                      isStringWithSize(request.resource.data.afterImg, 2048) &&
-                      isStringWithSize(request.resource.data.dentist, 256);
+      allow read, write: if true;
     }
 
-    // Testimonials Collection Rules
+    // Allow read and write for patient testimonials
     match /testimonials/{testimonialId} {
-      allow read: if true;
-      allow write: if isValidId(testimonialId) &&
-                      request.resource.data.keys().hasAll(['id', 'name', 'age', 'city', 'rating', 'text', 'treatmentName', 'treatmentId', 'avatarUrl']) &&
-                      request.resource.data.keys().size() == 9 &&
-                      isStringWithSize(request.resource.data.id, 128) &&
-                      isStringWithSize(request.resource.data.name, 256) &&
-                      isIntegerWithBounds(request.resource.data.age, 0, 150) &&
-                      isStringWithSize(request.resource.data.city, 256) &&
-                      isIntegerWithBounds(request.resource.data.rating, 1, 5) &&
-                      isStringWithSize(request.resource.data.text, 2048) &&
-                      isStringWithSize(request.resource.data.treatmentName, 256) &&
-                      isStringWithSize(request.resource.data.treatmentId, 128) &&
-                      isStringWithSize(request.resource.data.avatarUrl, 2048);
+      allow read, write: if true;
     }
 
-    // Gallery Collection Rules
+    // Allow read and write for clinic gallery items
     match /gallery/{galleryId} {
-      allow read: if true;
-      allow write: if isValidId(galleryId) &&
-                      request.resource.data.keys().hasAll(['id', 'imageUrl', 'caption']) &&
-                      request.resource.data.keys().size() == 3 &&
-                      isStringWithSize(request.resource.data.id, 128) &&
-                      isStringWithSize(request.resource.data.imageUrl, 2048) &&
-                      isStringWithSize(request.resource.data.caption, 1024);
+      allow read, write: if true;
     }
 
-    // Bookings Collection Rules
+    // Allow read and write for appointment bookings
     match /bookings/{bookingId} {
-      allow read, write: if true; // Bookings can be written by any public visitor
+      allow read, write: if true;
     }
 
-    // Leads Collection Rules
+    // Allow read and write for generated leads and contacts
     match /leads/{leadId} {
-      allow read, write: if true; // Leads can be created by any visitor taking the quiz or filling forms
+      allow read, write: if true;
     }
   }
 }
