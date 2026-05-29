@@ -122,15 +122,43 @@ export const ImageEditorModal: React.FC = () => {
       alert('Por favor, envie um arquivo de imagem válido (PNG, JPG, JPEG, WEBP).');
       return;
     }
-    if (file.size > 2.5 * 1024 * 1024) {
-      alert('Sua imagem é muito grande! Envie um arquivo com menos de 2.5MB para garantir a persistência em cache.');
-      return;
-    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && typeof e.target.result === 'string') {
-        setUrlInput(e.target.result);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 800; // 800px max dimension is more than enough and keeps file sizes ultra small (e.g. 30KB - 80KB)
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress as JPEG with 0.75 quality for beautiful look and tiny payload
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+            setUrlInput(compressedBase64);
+          } else {
+            setUrlInput(e.target!.result as string);
+          }
+        };
+        img.onerror = () => {
+          setUrlInput(e.target!.result as string);
+        };
+        img.src = e.target.result;
       }
     };
     reader.readAsDataURL(file);

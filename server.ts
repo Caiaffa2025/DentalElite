@@ -224,37 +224,8 @@ async function saveToFirestore(body: any) {
   }
 }
 
-// Recursive helper to process base64 images and save them as local uploads
+// Helper to process images (no-op as we store compressed base64 strings directly in our cloud Firestore database)
 function processBase64Images(node: any): any {
-  if (typeof node === "string") {
-    const base64Regex = /^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/;
-    const match = node.match(base64Regex);
-    if (match) {
-      const ext = match[1] === "jpeg" ? "jpg" : match[1];
-      const base64Data = match[2];
-      const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000000)}.${ext}`;
-      const uploadDir = path.join(process.cwd(), "uploads");
-      
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      const filePath = path.join(uploadDir, filename);
-      // Write the binary file to disk
-      fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
-      
-      console.log(`Saved base64 image to local file: /uploads/${filename}`);
-      return `/uploads/${filename}`;
-    }
-  } else if (Array.isArray(node)) {
-    return node.map(item => processBase64Images(item));
-  } else if (node !== null && typeof node === "object") {
-    const newNode: any = {};
-    for (const key of Object.keys(node)) {
-      newNode[key] = processBase64Images(node[key]);
-    }
-    return newNode;
-  }
   return node;
 }
 

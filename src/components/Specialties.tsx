@@ -147,16 +147,26 @@ export default function Specialties() {
                   </button>
                 </div>
               ) : (
-                filteredSpecialties.map((spec) => (
-                  <button
+                filteredSpecialties.map((spec, idx) => (
+                  <motion.button
                     key={spec.id}
                     id={`btn-specialty-tab-${spec.id}`}
                     onClick={() => setSelectedSpecialty(spec)}
-                    className={`w-full text-left p-4 rounded-xl border transition-all duration-300 flex items-center space-x-3 cursor-pointer ${
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-350 flex items-center space-x-3 cursor-pointer ${
                       selectedSpecialty.id === spec.id
-                        ? 'bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-100'
+                        ? 'bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-100/50'
                         : 'bg-slate-50 hover:bg-slate-100 border-slate-100 text-slate-800'
                     }`}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ 
+                      duration: 0.6, 
+                      delay: Math.min(idx * 0.08, 0.4), 
+                      ease: [0.16, 1, 0.3, 1] 
+                    }}
+                    whileHover={{ scale: selectedSpecialty.id === spec.id ? 1.01 : 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <div 
                       className={`p-2 rounded-lg shrink-0 ${
@@ -177,7 +187,7 @@ export default function Specialties() {
                         {spec.shortDescription}
                       </p>
                     </div>
-                  </button>
+                  </motion.button>
                 ))
               )}
             </div>
