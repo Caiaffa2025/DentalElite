@@ -105,9 +105,48 @@ function writeDb(data: any) {
   }
 }
 
+// Recursive helper to process base64 images and save them as local uploads
+function processBase64Images(node: any): any {
+  if (typeof node === "string") {
+    const base64Regex = /^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/;
+    const match = node.match(base64Regex);
+    if (match) {
+      const ext = match[1] === "jpeg" ? "jpg" : match[1];
+      const base64Data = match[2];
+      const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000000)}.${ext}`;
+      const uploadDir = path.join(process.cwd(), "uploads");
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      const filePath = path.join(uploadDir, filename);
+      // Write the binary file to disk
+      fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+      
+      console.log(`Saved base64 image to local file: /uploads/${filename}`);
+      return `/uploads/${filename}`;
+    }
+  } else if (Array.isArray(node)) {
+    return node.map(item => processBase64Images(item));
+  } else if (node !== null && typeof node === "object") {
+    const newNode: any = {};
+    for (const key of Object.keys(node)) {
+      newNode[key] = processBase64Images(node[key]);
+    }
+    return newNode;
+  }
+  return node;
+}
+
 // Start Server
 async function startServer() {
-  app.use(express.json());
+  // Allow large payloads for base64 image transfers
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Statically serve uploaded files
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   // Log accesses
   app.use((req, res, next) => {
@@ -132,13 +171,13 @@ async function startServer() {
       const { heroDoctorImageUrl, doctors, caseStudies, testimonials, gallery, bookings, leads } = req.body;
       const db = readDb();
 
-      if (heroDoctorImageUrl !== undefined) db.heroDoctorImageUrl = heroDoctorImageUrl;
-      if (doctors !== undefined) db.doctors = doctors;
-      if (caseStudies !== undefined) db.caseStudies = caseStudies;
-      if (testimonials !== undefined) db.testimonials = testimonials;
-      if (gallery !== undefined) db.gallery = gallery;
-      if (bookings !== undefined) db.bookings = bookings;
-      if (leads !== undefined) db.leads = leads;
+      if (heroDoctorImageUrl !== undefined) db.heroDoctorImageUrl = processBase64Images(heroDoctorImageUrl);
+      if (doctors !== undefined) db.doctors = processBase64Images(doctors);
+      if (caseStudies !== undefined) db.caseStudies = processBase64Images(caseStudies);
+      if (testimonials !== undefined) db.testimonials = processBase64Images(testimonials);
+      if (gallery !== undefined) db.gallery = processBase64Images(gallery);
+      if (bookings !== undefined) db.bookings = processBase64Images(bookings);
+      if (leads !== undefined) db.leads = processBase64Images(leads);
 
       writeDb(db);
       res.json({ success: true, db });
@@ -150,7 +189,7 @@ async function startServer() {
   // Add individual booking (Public Route)
   app.post("/api/db/booking", (req, res) => {
     try {
-      const newBooking = req.body;
+      const newBooking = processBase64Images(req.body);
       if (!newBooking || !newBooking.id) {
         return res.status(400).json({ error: "Booking object with an ID is required." });
       }
@@ -167,7 +206,7 @@ async function startServer() {
   // Add individual lead (Public Route)
   app.post("/api/db/lead", (req, res) => {
     try {
-      const newLead = req.body;
+      const newLead = processBase64Images(req.body);
       if (!newLead || !newLead.id) {
         return res.status(400).json({ error: "Lead object with an ID is required." });
       }
