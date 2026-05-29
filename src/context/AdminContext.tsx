@@ -24,8 +24,8 @@ const initialCaseStudies: CaseStudy[] = [
     title: 'Transformação Estética com Lentes de Contato',
     specialty: 'Odontologia Estética / Porcelana',
     patientInitials: 'P.S.M, 32 anos',
-    beforeImg: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=600',
-    afterImg: 'https://images.unsplash.com/photo-1613521140210-b4d98588f58d?auto=format&fit=crop&q=80&w=600',
+    beforeImg: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&q=80&w=600',
+    afterImg: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600',
     dentist: 'Dra. Beatriz Menezes'
   },
   {
@@ -33,8 +33,8 @@ const initialCaseStudies: CaseStudy[] = [
     title: 'Clareamento Violeta de Alta Eficácia',
     specialty: 'Estética / Clareamento Premium',
     patientInitials: 'L.A.T, 28 anos',
-    beforeImg: 'https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&q=80&w=600',
-    afterImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    beforeImg: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    afterImg: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=600',
     dentist: 'Dra. Beatriz Menezes'
   },
   {
@@ -51,17 +51,17 @@ const initialCaseStudies: CaseStudy[] = [
 const initialGallery: GalleryItem[] = [
   {
     id: 'gal1',
-    imageUrl: 'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&q=80&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=600',
     caption: 'Consultório odontológico equipado com tecnologia 3D alemã'
   },
   {
     id: 'gal2',
-    imageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=600',
     caption: 'Recepção aconchegante e confortável para nossos pacientes'
   },
   {
     id: 'gal3',
-    imageUrl: 'https://images.unsplash.com/photo-1461344577544-4e5dc948718b?auto=format&fit=crop&q=80&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&q=80&w=600',
     caption: 'Nossa equipe unida focada em cuidar do seu sorriso'
   }
 ];
@@ -117,27 +117,47 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [heroDoctorImageUrl, setHeroDoctorImageUrl] = useState<string>(() => {
-    return localStorage.getItem('cfg_hero_doctor') || 'https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600';
+    return localStorage.getItem('cfg_hero_doctor') || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600';
   });
 
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
-    const saved = localStorage.getItem('cfg_doctors');
-    return saved ? JSON.parse(saved) : initialDoctors;
+    try {
+      const saved = localStorage.getItem('cfg_doctors');
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && parsed.length > 0 ? parsed : initialDoctors;
+    } catch {
+      return initialDoctors;
+    }
   });
 
   const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(() => {
-    const saved = localStorage.getItem('cfg_cases');
-    return saved ? JSON.parse(saved) : initialCaseStudies;
+    try {
+      const saved = localStorage.getItem('cfg_cases');
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && parsed.length > 0 ? parsed : initialCaseStudies;
+    } catch {
+      return initialCaseStudies;
+    }
   });
 
   const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
-    const saved = localStorage.getItem('cfg_testimonials');
-    return saved ? JSON.parse(saved) : initialTestimonials;
+    try {
+      const saved = localStorage.getItem('cfg_testimonials');
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && parsed.length > 0 ? parsed : initialTestimonials;
+    } catch {
+      return initialTestimonials;
+    }
   });
 
   const [gallery, setGallery] = useState<GalleryItem[]>(() => {
-    const saved = localStorage.getItem('cfg_gallery');
-    return saved ? JSON.parse(saved) : initialGallery;
+    try {
+      const saved = localStorage.getItem('cfg_gallery');
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && parsed.length > 0 ? parsed : initialGallery;
+    } catch {
+      return initialGallery;
+    }
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -185,11 +205,29 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const response = await fetch('/api/db');
         if (response.ok) {
           const data = await response.json();
-          if (data.heroDoctorImageUrl !== undefined) setHeroDoctorImageUrl(data.heroDoctorImageUrl);
-          if (data.doctors !== undefined) setDoctors(data.doctors);
-          if (data.caseStudies !== undefined) setCaseStudies(data.caseStudies);
-          if (data.testimonials !== undefined) setTestimonials(data.testimonials);
-          if (data.gallery !== undefined) setGallery(data.gallery);
+          if (data.heroDoctorImageUrl !== undefined) {
+            setHeroDoctorImageUrl(data.heroDoctorImageUrl || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600');
+          }
+          if (data.doctors !== undefined && data.doctors.length > 0) {
+            setDoctors(data.doctors);
+          } else {
+            setDoctors(initialDoctors);
+          }
+          if (data.caseStudies !== undefined && data.caseStudies.length > 0) {
+            setCaseStudies(data.caseStudies);
+          } else {
+            setCaseStudies(initialCaseStudies);
+          }
+          if (data.testimonials !== undefined && data.testimonials.length > 0) {
+            setTestimonials(data.testimonials);
+          } else {
+            setTestimonials(initialTestimonials);
+          }
+          if (data.gallery !== undefined && data.gallery.length > 0) {
+            setGallery(data.gallery);
+          } else {
+            setGallery(initialGallery);
+          }
           if (data.bookings !== undefined) setBookings(data.bookings);
           if (data.leads !== undefined) setLeads(data.leads);
         }

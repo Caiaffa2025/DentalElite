@@ -15,8 +15,8 @@ const initialCaseStudies = [
     title: "Transformação Estética com Lentes de Contato",
     specialty: "Odontologia Estética / Porcelana",
     patientInitials: "P.S.M, 32 anos",
-    beforeImg: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=600",
-    afterImg: "https://images.unsplash.com/photo-1613521140210-b4d98588f58d?auto=format&fit=crop&q=80&w=600",
+    beforeImg: "https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&q=80&w=600",
+    afterImg: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600",
     dentist: "Dra. Beatriz Menezes"
   },
   {
@@ -24,8 +24,8 @@ const initialCaseStudies = [
     title: "Clareamento Violeta de Alta Eficácia",
     specialty: "Estética / Clareamento Premium",
     patientInitials: "L.A.T, 28 anos",
-    beforeImg: "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&q=80&w=600",
-    afterImg: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
+    beforeImg: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
+    afterImg: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=600",
     dentist: "Dra. Beatriz Menezes"
   },
   {
@@ -43,17 +43,17 @@ const initialCaseStudies = [
 const initialGallery = [
   {
     id: "gal1",
-    imageUrl: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&q=80&w=600",
+    imageUrl: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=600",
     caption: "Consultório odontológico equipado com tecnologia 3D alemã"
   },
   {
     id: "gal2",
-    imageUrl: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=600",
+    imageUrl: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=600",
     caption: "Recepção aconchegante e confortável para nossos pacientes"
   },
   {
     id: "gal3",
-    imageUrl: "https://images.unsplash.com/photo-1461344577544-4e5dc948718b?auto=format&fit=crop&q=80&w=600",
+    imageUrl: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&q=80&w=600",
     caption: "Nossa equipe unida focada em cuidar do seu sorriso"
   }
 ];
@@ -72,52 +72,58 @@ async function readDbFromFirestore() {
     const settingsDocRef = doc(db, "settings", "global");
     const settingsSnapshot = await getDoc(settingsDocRef);
     
-    // If database is completely unpopulated, seed with default values
+    // Seed settings if missing
     if (!settingsSnapshot.exists()) {
-      console.log("Firestore settings not found. Seeding initial database into Cloud Firestore...");
-      
-      // Seeding global settings
+      console.log("Firestore settings not found. Seeding initial settings...");
       await setDoc(settingsDocRef, {
-        heroDoctorImageUrl: "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600"
+        heroDoctorImageUrl: "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600"
       });
+    }
 
-      // Seeding Initial Doctors
+    // Seed missing collections individually to prevent empty states
+    const docsSnapshot = await getDocs(collection(db, "doctors"));
+    let doctors = docsSnapshot.docs.map(docSnap => docSnap.data());
+    if (doctors.length === 0) {
+      console.log("Doctors collection is empty. Auto-seeding initial doctors...");
       for (const d of initialDoctors) {
         await setDoc(doc(db, "doctors", d.id), d);
       }
+      doctors = initialDoctors;
+    }
 
-      // Seeding Initial Case Studies
+    const casesSnapshot = await getDocs(collection(db, "caseStudies"));
+    let caseStudies = casesSnapshot.docs.map(docSnap => docSnap.data());
+    if (caseStudies.length === 0) {
+      console.log("Case studies collection is empty. Auto-seeding initial case studies...");
       for (const c of initialCaseStudies) {
         await setDoc(doc(db, "caseStudies", c.id), c);
       }
+      caseStudies = initialCaseStudies;
+    }
 
-      // Seeding Initial Testimonials
+    const testimonialsSnapshot = await getDocs(collection(db, "testimonials"));
+    let testimonials = testimonialsSnapshot.docs.map(docSnap => docSnap.data());
+    if (testimonials.length === 0) {
+      console.log("Testimonials collection is empty. Auto-seeding initial testimonials...");
       for (const t of initialTestimonials) {
         await setDoc(doc(db, "testimonials", t.id), t);
       }
+      testimonials = initialTestimonials;
+    }
 
-      // Seeding Initial Gallery
+    const gallerySnapshot = await getDocs(collection(db, "gallery"));
+    let gallery = gallerySnapshot.docs.map(docSnap => docSnap.data());
+    if (gallery.length === 0) {
+      console.log("Gallery collection is empty. Auto-seeding initial gallery...");
       for (const g of initialGallery) {
         await setDoc(doc(db, "gallery", g.id), g);
       }
-      
-      console.log("Free Cloud Firestore Database seeded successfully!");
+      gallery = initialGallery;
     }
 
-    // Load everything from Firestore
+    // Load final data
     const settingsData = (await getDoc(settingsDocRef)).data();
-    
-    const docsSnapshot = await getDocs(collection(db, "doctors"));
-    const doctors = docsSnapshot.docs.map(docSnap => docSnap.data());
-
-    const casesSnapshot = await getDocs(collection(db, "caseStudies"));
-    const caseStudies = casesSnapshot.docs.map(docSnap => docSnap.data());
-
-    const testimonialsSnapshot = await getDocs(collection(db, "testimonials"));
-    const testimonials = testimonialsSnapshot.docs.map(docSnap => docSnap.data());
-
-    const gallerySnapshot = await getDocs(collection(db, "gallery"));
-    const gallery = gallerySnapshot.docs.map(docSnap => docSnap.data());
+    const heroDoctorImageUrl = settingsData?.heroDoctorImageUrl || "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600";
 
     const bookingsSnapshot = await getDocs(collection(db, "bookings"));
     const bookings = bookingsSnapshot.docs.map(docSnap => docSnap.data());
@@ -126,7 +132,7 @@ async function readDbFromFirestore() {
     const leads = leadsSnapshot.docs.map(docSnap => docSnap.data());
 
     return {
-      heroDoctorImageUrl: settingsData?.heroDoctorImageUrl || "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600",
+      heroDoctorImageUrl,
       doctors,
       caseStudies,
       testimonials,
@@ -137,7 +143,7 @@ async function readDbFromFirestore() {
   } catch (err) {
     console.error("Error reading database from Firestore:", err);
     return {
-      heroDoctorImageUrl: "https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&q=80&w=600",
+      heroDoctorImageUrl: "https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600",
       doctors: initialDoctors,
       caseStudies: initialCaseStudies,
       testimonials: initialTestimonials,
