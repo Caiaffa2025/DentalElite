@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Doctor, Testimonial, Booking, Lead } from '../types';
 import { doctors as initialDoctors, testimonials as initialTestimonials } from '../data';
+import { db } from '../lib/firebase';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 
 export interface CaseStudy {
   id: string;
@@ -199,9 +201,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setImageEditorState(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Load initial database state on mount
+  // Load initial database state on mount (Try API server first, fallback directly to Firestore client)
   useEffect(() => {
     const fetchDb = async () => {
+      let loadedFromApi = false;
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
@@ -209,107 +212,140 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (data.heroDoctorImageUrl !== undefined) {
             setHeroDoctorImageUrl(data.heroDoctorImageUrl || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=600');
           }
-          if (data.doctors !== undefined && data.doctors.length > 0) {
-            setDoctors(data.doctors);
-          } else {
-            setDoctors(initialDoctors);
-          }
-          if (data.caseStudies !== undefined && data.caseStudies.length > 0) {
-            setCaseStudies(data.caseStudies);
-          } else {
-            setCaseStudies(initialCaseStudies);
-          }
-          if (data.testimonials !== undefined && data.testimonials.length > 0) {
-            setTestimonials(data.testimonials);
-          } else {
-            setTestimonials(initialTestimonials);
-          }
-          if (data.gallery !== undefined && data.gallery.length > 0) {
-            setGallery(data.gallery);
-          } else {
-            setGallery(initialGallery);
-          }
+          if (data.doctors !== undefined && data.doctors.length > 0) setDoctors(data.doctors);
+          if (data.caseStudies !== undefined && data.caseStudies.length > 0) setCaseStudies(data.caseStudies);
+          if (data.testimonials !== undefined && data.testimonials.length > 0) setTestimonials(data.testimonials);
+          if (data.gallery !== undefined && data.gallery.length > 0) setGallery(data.gallery);
           if (data.bookings !== undefined) setBookings(data.bookings);
           if (data.leads !== undefined) setLeads(data.leads);
+          loadedFromApi = true;
         }
-      } catch (err) {
-        console.error('Failed to load database from server:', err);
-      } finally {
-        setIsDbLoaded(true);
+      } catch {
+        // Express backend route not available (e.g. GitHub Pages / Vercel SPA deployment)
       }
+
+      if (!loadedFromApi) {
+        try {
+          const settingsSnap = await getDoc(doc(db, 'settings', 'global'));
+          if (settingsSnap.exists() && settingsSnap.data().heroDoctorImageUrl) {
+            setHeroDoctorImageUrl(settingsSnap.data().heroDoctorImageUrl);
+          }
+
+          const doctorsSnap = await getDocs(collection(db, 'doctors'));
+          if (!doctorsSnap.empty) {
+            setDoctors(doctorsSnap.docs.map(d => d.data() as Doctor));
+          }
+
+          const casesSnap = await getDocs(collection(db, 'caseStudies'));
+          if (!casesSnap.empty) {
+            setCaseStudies(casesSnap.docs.map(d => d.data() as CaseStudy));
+          }
+
+          const testSnap = await getDocs(collection(db, 'testimonials'));
+          if (!testSnap.empty) {
+            setTestimonials(testSnap.docs.map(d => d.data() as Testimonial));
+          }
+
+          const galSnap = await getDocs(collection(db, 'gallery'));
+          if (!galSnap.empty) {
+            setGallery(galSnap.docs.map(d => d.data() as GalleryItem));
+          }
+
+          const bookSnap = await getDocs(collection(db, 'bookings'));
+          if (!bookSnap.empty) {
+            setBookings(bookSnap.docs.map(d => d.data() as Booking));
+          }
+
+          const leadsSnap = await getDocs(collection(db, 'leads'));
+          if (!leadsSnap.empty) {
+            setLeads(leadsSnap.docs.map(d => d.data() as Lead));
+          }
+        } catch (clientFsErr) {
+          console.error('Direct Firestore client fetch error:', clientFsErr);
+        }
+      }
+
+      setIsDbLoaded(true);
     };
     fetchDb();
   }, []);
 
-  // Persistors (with Cloud Database synchronization guards)
+  // Persistors (Sync both to LocalStorage, Express backend if present, AND Firestore client directly)
   useEffect(() => {
     localStorage.setItem('cfg_hero_doctor', heroDoctorImageUrl);
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    setDoc(doc(db, 'settings', 'global'), { heroDoctorImageUrl }, { merge: true }).catch(() => {});
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ heroDoctorImageUrl })
-    }).catch(err => console.error('Error syncing heroDoctorImageUrl to server:', err));
+    }).catch(() => {});
   }, [heroDoctorImageUrl, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_doctors', JSON.stringify(doctors));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    doctors.forEach(d => setDoc(doc(db, 'doctors', d.id), d).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ doctors })
-    }).catch(err => console.error('Error syncing doctors to server:', err));
+    }).catch(() => {});
   }, [doctors, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_cases', JSON.stringify(caseStudies));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    caseStudies.forEach(c => setDoc(doc(db, 'caseStudies', c.id), c).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ caseStudies })
-    }).catch(err => console.error('Error syncing caseStudies to server:', err));
+    }).catch(() => {});
   }, [caseStudies, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_testimonials', JSON.stringify(testimonials));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    testimonials.forEach(t => setDoc(doc(db, 'testimonials', t.id), t).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ testimonials })
-    }).catch(err => console.error('Error syncing testimonials to server:', err));
+    }).catch(() => {});
   }, [testimonials, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_gallery', JSON.stringify(gallery));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    gallery.forEach(g => setDoc(doc(db, 'gallery', g.id), g).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gallery })
-    }).catch(err => console.error('Error syncing gallery to server:', err));
+    }).catch(() => {});
   }, [gallery, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_bookings', JSON.stringify(bookings));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    bookings.forEach(b => setDoc(doc(db, 'bookings', b.id), b).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookings })
-    }).catch(err => console.error('Error syncing bookings to server:', err));
+    }).catch(() => {});
   }, [bookings, isDbLoaded]);
 
   useEffect(() => {
     localStorage.setItem('cfg_leads', JSON.stringify(leads));
     if (!isDbLoaded || isInitialLoadRef.current) return;
+    leads.forEach(l => setDoc(doc(db, 'leads', l.id), l).catch(() => {}));
     fetch('/api/db/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ leads })
-    }).catch(err => console.error('Error syncing leads to server:', err));
+    }).catch(() => {});
   }, [leads, isDbLoaded]);
 
   useEffect(() => {
@@ -387,6 +423,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteDoctor = (id: string) => {
     setDoctors(prev => {
       const updated = prev.filter(d => d.id !== id);
+      deleteDoc(doc(db, 'doctors', id)).catch(() => {});
       fetch('/api/db/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -439,6 +476,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteCaseStudy = (id: string) => {
     setCaseStudies(prev => {
       const updated = prev.filter(c => c.id !== id);
+      deleteDoc(doc(db, 'caseStudies', id)).catch(() => {});
       fetch('/api/db/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -479,6 +517,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteTestimonial = (id: string) => {
     setTestimonials(prev => {
       const updated = prev.filter(t => t.id !== id);
+      deleteDoc(doc(db, 'testimonials', id)).catch(() => {});
       fetch('/api/db/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -520,6 +559,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteGalleryItem = (id: string) => {
     setGallery(prev => {
       const updated = prev.filter(item => item.id !== id);
+      deleteDoc(doc(db, 'gallery', id)).catch(() => {});
       fetch('/api/db/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -532,6 +572,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addBooking = (booking: Booking) => {
     setBookings(prev => {
       const updated = [booking, ...prev];
+      setDoc(doc(db, 'bookings', booking.id), booking).catch(() => {});
       fetch('/api/db/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -544,6 +585,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteBooking = (id: string) => {
     setBookings(prev => {
       const updated = prev.filter(b => b.id !== id);
+      deleteDoc(doc(db, 'bookings', id)).catch(() => {});
       fetch('/api/db/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -556,6 +598,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addLead = (lead: Lead) => {
     setLeads(prev => {
       const updated = [lead, ...prev];
+      setDoc(doc(db, 'leads', lead.id), lead).catch(() => {});
       fetch('/api/db/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -568,6 +611,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteLead = (id: string) => {
     setLeads(prev => {
       const updated = prev.filter(l => l.id !== id);
+      deleteDoc(doc(db, 'leads', id)).catch(() => {});
       fetch('/api/db/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
