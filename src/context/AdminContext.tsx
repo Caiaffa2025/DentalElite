@@ -337,10 +337,23 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateHeroDoctorImage = (url: string) => {
     setHeroDoctorImageUrl(url);
+    fetch('/api/db/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ heroDoctorImageUrl: url })
+    }).catch(err => console.error('Error syncing heroDoctorImageUrl:', err));
   };
 
   const updateDoctorImage = (id: string, url: string) => {
-    setDoctors(prev => prev.map(d => d.id === id ? { ...d, imageUrl: url } : d));
+    setDoctors(prev => {
+      const updated = prev.map(d => d.id === id ? { ...d, imageUrl: url } : d);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updated })
+      }).catch(err => console.error('Error syncing doctor image:', err));
+      return updated;
+    });
   };
 
   const addDoctor = (doc: Omit<Doctor, 'id'>) => {
@@ -348,19 +361,51 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...doc,
       id: `doc_${Date.now()}`
     };
-    setDoctors(prev => [...prev, newDoc]);
+    setDoctors(prev => {
+      const updated = [...prev, newDoc];
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updated })
+      }).catch(err => console.error('Error adding doctor:', err));
+      return updated;
+    });
   };
 
   const updateDoctor = (id: string, doc: Omit<Doctor, 'id'>) => {
-    setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...doc } : d));
+    setDoctors(prev => {
+      const updated = prev.map(d => d.id === id ? { ...d, ...doc } : d);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updated })
+      }).catch(err => console.error('Error updating doctor:', err));
+      return updated;
+    });
   };
 
   const deleteDoctor = (id: string) => {
-    setDoctors(prev => prev.filter(d => d.id !== id));
+    setDoctors(prev => {
+      const updated = prev.filter(d => d.id !== id);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updated })
+      }).catch(err => console.error('Error deleting doctor:', err));
+      return updated;
+    });
   };
 
   const updateCaseStudyImage = (id: string, field: 'beforeImg' | 'afterImg', url: string) => {
-    setCaseStudies(prev => prev.map(c => c.id === id ? { ...c, [field]: url } : c));
+    setCaseStudies(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, [field]: url } : c);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseStudies: updated })
+      }).catch(err => console.error('Error updating case study image:', err));
+      return updated;
+    });
   };
 
   const addCaseStudy = (study: Omit<CaseStudy, 'id'>) => {
@@ -368,19 +413,51 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...study,
       id: `case_${Date.now()}`
     };
-    setCaseStudies(prev => [...prev, newStudy]);
+    setCaseStudies(prev => {
+      const updated = [...prev, newStudy];
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseStudies: updated })
+      }).catch(err => console.error('Error adding case study:', err));
+      return updated;
+    });
   };
 
   const updateCaseStudy = (id: string, study: Omit<CaseStudy, 'id'>) => {
-    setCaseStudies(prev => prev.map(c => c.id === id ? { ...c, ...study } : c));
+    setCaseStudies(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, ...study } : c);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseStudies: updated })
+      }).catch(err => console.error('Error updating case study:', err));
+      return updated;
+    });
   };
 
   const deleteCaseStudy = (id: string) => {
-    setCaseStudies(prev => prev.filter(c => c.id !== id));
+    setCaseStudies(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseStudies: updated })
+      }).catch(err => console.error('Error deleting case study:', err));
+      return updated;
+    });
   };
 
   const updateTestimonialImage = (id: string, url: string) => {
-    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, avatarUrl: url } : t));
+    setTestimonials(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, avatarUrl: url } : t);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testimonials: updated })
+      }).catch(err => console.error('Error updating testimonial image:', err));
+      return updated;
+    });
   };
 
   const addTestimonial = (test: Omit<Testimonial, 'id'>) => {
@@ -388,11 +465,27 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...test,
       id: `test_${Date.now()}`
     };
-    setTestimonials(prev => [...prev, newTest]);
+    setTestimonials(prev => {
+      const updated = [...prev, newTest];
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testimonials: updated })
+      }).catch(err => console.error('Error adding testimonial:', err));
+      return updated;
+    });
   };
 
   const deleteTestimonial = (id: string) => {
-    setTestimonials(prev => prev.filter(t => t.id !== id));
+    setTestimonials(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testimonials: updated })
+      }).catch(err => console.error('Error deleting testimonial:', err));
+      return updated;
+    });
   };
 
   const addGalleryItem = (imageUrl: string, caption: string) => {
@@ -401,31 +494,87 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       imageUrl,
       caption
     };
-    setGallery(prev => [...prev, newItem]);
+    setGallery(prev => {
+      const updated = [...prev, newItem];
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gallery: updated })
+      }).catch(err => console.error('Error adding gallery item:', err));
+      return updated;
+    });
   };
 
   const updateGalleryItem = (id: string, imageUrl: string, caption: string) => {
-    setGallery(prev => prev.map(item => item.id === id ? { ...item, imageUrl, caption } : item));
+    setGallery(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, imageUrl, caption } : item);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gallery: updated })
+      }).catch(err => console.error('Error updating gallery item:', err));
+      return updated;
+    });
   };
 
   const deleteGalleryItem = (id: string) => {
-    setGallery(prev => prev.filter(item => item.id !== id));
+    setGallery(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gallery: updated })
+      }).catch(err => console.error('Error deleting gallery item:', err));
+      return updated;
+    });
   };
 
   const addBooking = (booking: Booking) => {
-    setBookings(prev => [booking, ...prev]);
+    setBookings(prev => {
+      const updated = [booking, ...prev];
+      fetch('/api/db/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(booking)
+      }).catch(err => console.error('Error adding booking:', err));
+      return updated;
+    });
   };
 
   const deleteBooking = (id: string) => {
-    setBookings(prev => prev.filter(b => b.id !== id));
+    setBookings(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      fetch('/api/db/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bookings', id })
+      }).catch(err => console.error('Error deleting booking:', err));
+      return updated;
+    });
   };
 
   const addLead = (lead: Lead) => {
-    setLeads(prev => [lead, ...prev]);
+    setLeads(prev => {
+      const updated = [lead, ...prev];
+      fetch('/api/db/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead)
+      }).catch(err => console.error('Error adding lead:', err));
+      return updated;
+    });
   };
 
   const deleteLead = (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
+    setLeads(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      fetch('/api/db/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'leads', id })
+      }).catch(err => console.error('Error deleting lead:', err));
+      return updated;
+    });
   };
 
   return (
